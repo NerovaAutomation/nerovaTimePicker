@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimePicker CDN Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input {
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+            max-width: 100%;
+        }
+        
+        .wide-input {
+            width: 300px;
+        }
+        
+        /* Custom theme example */
+        .dark-theme {
+            --timepicker-bg: #2d3748;
+            --timepicker-border: #4a5568;
+            --timepicker-text: #e2e8f0;
+            --timepicker-selected: #ffffff;
+            --timepicker-primary: #4299e1;
+            --timepicker-secondary: #4a5568;
+            --timepicker-shadow: rgba(0, 0, 0, 0.5);
+            --timepicker-separator: #cbd5e0;
+        }
+        
+        .red-theme {
+            --timepicker-primary: #e53e3e;
+            --timepicker-selected: #c53030;
+        }
+        
+        .green-theme {
+            --timepicker-primary: #38a169;
+            --timepicker-selected: #2f855a;
+        }
+        
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .demo-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>TimePicker CDN Demo</h1>
+    
+    <div class="demo-section">
+        <h2>Basic Usage</h2>
+        <p>Just add <code>data-time-picker</code> to any input field:</p>
+        
+        <div class="form-group">
+            <label for="basic">Basic Time Picker (1-minute intervals):</label>
+            <input id="basic" data-time-picker placeholder="Click to select time">
+        </div>
+        
+        <div class="form-group">
+            <label for="wide">Wide Input (adapts to input width):</label>
+            <input id="wide" class="wide-input" data-time-picker placeholder="Click to select time">
+        </div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Custom Minute Intervals</h2>
+        <p>Use <code>data-minute-interval</code> to change minute increments:</p>
+        
+        <div class="form-group">
+            <label for="five">5-Minute Intervals:</label>
+            <input id="five" data-time-picker data-minute-interval="5" placeholder="5-min intervals">
+        </div>
+        
+        <div class="form-group">
+            <label for="fifteen">15-Minute Intervals:</label>
+            <input id="fifteen" data-time-picker data-minute-interval="15" placeholder="15-min intervals">
+        </div>
+        
+        <div class="form-group">
+            <label for="thirty">30-Minute Intervals:</label>
+            <input id="thirty" data-time-picker data-minute-interval="30" placeholder="30-min intervals">
+        </div>
+    </div>
+    
+    <div class="demo-section dark-theme">
+        <h2>Dark Theme</h2>
+        <p>Customize colors with CSS variables:</p>
+        
+        <div class="form-group">
+            <label for="dark" style="color: white;">Dark Theme Picker:</label>
+            <input id="dark" data-time-picker data-minute-interval="5" placeholder="Dark theme" style="background: #4a5568; color: white; border-color: #718096;">
+        </div>
+        
+        <pre style="background: #1a202c; color: #e2e8f0; margin-top: 15px;"><code>.dark-theme {
+    --timepicker-bg: #2d3748;
+    --timepicker-border: #4a5568;
+    --timepicker-text: #e2e8f0;
+    --timepicker-selected: #ffffff;
+    --timepicker-primary: #4299e1;
+    --timepicker-secondary: #4a5568;
+    --timepicker-shadow: rgba(0, 0, 0, 0.5);
+    --timepicker-separator: #cbd5e0;
+}</code></pre>
+    </div>
+    
+    <div class="demo-section red-theme">
+        <h2>Red Theme</h2>
+        <div class="form-group">
+            <label for="red">Red Theme Picker:</label>
+            <input id="red" data-time-picker data-minute-interval="10" placeholder="Red theme">
+        </div>
+    </div>
+    
+    <div class="demo-section green-theme">
+        <h2>Green Theme</h2>
+        <div class="form-group">
+            <label for="green">Green Theme Picker:</label>
+            <input id="green" data-time-picker data-minute-interval="15" placeholder="Green theme">
+        </div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Implementation</h2>
+        <p><strong>Step 1:</strong> Add the script to your HTML:</p>
+        <pre><code>&lt;script src="https://cdn.jsdelivr.net/gh/yourusername/timepicker@main/timepicker.js"&gt;&lt;/script&gt;</code></pre>
+        
+        <p><strong>Step 2:</strong> Add data attributes to inputs:</p>
+        <pre><code>&lt;input data-time-picker data-minute-interval="5" placeholder="Select time"&gt;</code></pre>
+        
+        <p><strong>Step 3 (Optional):</strong> Customize with CSS variables:</p>
+        <pre><code>:root {
+    --timepicker-primary: #your-color;
+    --timepicker-bg: #your-bg-color;
+}</code></pre>
+    </div>
+    
+    <!-- Load the TimePicker script -->
+    <script src="./timepicker.js"></script>
+    
+    <script>
+        // Demo: Show selected values
+        document.querySelectorAll('input[data-time-picker]').forEach(input => {
+            input.addEventListener('change', function() {
+                console.log(`Selected time: ${this.value} (from ${this.id || 'unnamed'} input)`);
+            });
+        });
+    </script>
+</body>
+</html>

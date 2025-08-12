@@ -67,9 +67,6 @@
             justify-content: center;
         }
         
-        .timepicker-item:hover {
-            color: #000;
-        }
         
         .timepicker-item.selected {
             color: var(--timepicker-selected);
@@ -111,61 +108,6 @@
             opacity: 0.8;
         }
         
-        /* Mobile optimizations */
-        @media (max-width: 768px) {
-            .timepicker-popup {
-                padding: 20px;
-                border-radius: 12px;
-                box-shadow: 0 8px 32px var(--timepicker-shadow);
-                min-width: 280px;
-            }
-            
-            .timepicker-column {
-                width: 70px;
-            }
-            
-            .timepicker-scroller {
-                height: 140px;
-                padding: 35px 0;
-            }
-            
-            .timepicker-item {
-                padding: 12px 16px;
-                font-size: 20px;
-                min-height: 24px;
-                border-radius: 6px;
-            }
-            
-            .timepicker-separator {
-                font-size: 28px;
-                margin: 0 8px;
-            }
-            
-            .timepicker-buttons {
-                margin-top: 15px;
-                gap: 12px;
-            }
-            
-            .timepicker-btn {
-                padding: 12px 20px;
-                font-size: 16px;
-                border-radius: 8px;
-                min-height: 44px;
-            }
-        }
-        
-        /* Touch-specific optimizations */
-        @media (hover: none) and (pointer: coarse) {
-            .timepicker-item {
-                padding: 14px 18px;
-                min-height: 28px;
-            }
-            
-            .timepicker-btn {
-                min-height: 48px;
-                padding: 14px 24px;
-            }
-        }
         
     `;
     
@@ -341,8 +283,6 @@
                 }
             });
             
-            // Add touch event handling for mobile
-            this.setupTouchEvents();
         }
         
         setupScrollSelection() {
@@ -367,59 +307,6 @@
                 scrollTimeouts.period = setTimeout(() => {
                     this.updateSelectionFromScroll(this.periodScroller, 'period');
                 }, 150);
-            });
-        }
-        
-        setupTouchEvents() {
-            // Improve touch scrolling on mobile
-            [this.hourScroller, this.minuteScroller, this.periodScroller].forEach(scroller => {
-                // Enable momentum scrolling on iOS
-                scroller.style.webkitOverflowScrolling = 'touch';
-                scroller.style.overscrollBehavior = 'contain';
-                
-                // Prevent context menu on long press
-                scroller.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                });
-                
-                // Handle touch selection on mobile
-                let touchStartY = 0;
-                let touchMoved = false;
-                
-                scroller.addEventListener('touchstart', (e) => {
-                    touchStartY = e.touches[0].clientY;
-                    touchMoved = false;
-                }, { passive: true });
-                
-                scroller.addEventListener('touchmove', (e) => {
-                    const touchCurrentY = e.touches[0].clientY;
-                    const touchDiff = Math.abs(touchCurrentY - touchStartY);
-                    if (touchDiff > 10) {
-                        touchMoved = true;
-                    }
-                }, { passive: true });
-                
-                scroller.addEventListener('touchend', (e) => {
-                    // Only trigger click if it wasn't a scroll gesture
-                    if (!touchMoved && e.target.classList.contains('timepicker-item')) {
-                        e.target.click();
-                    }
-                }, { passive: true });
-            });
-            
-            // Better touch handling for buttons
-            [this.cancelBtn, this.okBtn].forEach(btn => {
-                btn.addEventListener('touchstart', () => {
-                    btn.style.opacity = '0.7';
-                });
-                
-                btn.addEventListener('touchend', () => {
-                    btn.style.opacity = '';
-                });
-                
-                btn.addEventListener('touchcancel', () => {
-                    btn.style.opacity = '';
-                });
             });
         }
         
@@ -475,42 +362,23 @@
         positionPicker() {
             const inputRect = this.input.getBoundingClientRect();
             const pickerRect = this.picker.getBoundingClientRect();
-            const isMobile = window.innerWidth <= 768;
             
             let top = inputRect.bottom + window.scrollY + 5;
             let left = inputRect.left + window.scrollX;
             
-            if (isMobile) {
-                // Center horizontally on mobile if screen is small
-                const availableWidth = window.innerWidth - 20; // 10px margin on each side
-                if (pickerRect.width > availableWidth) {
-                    left = 10;
-                    this.picker.style.width = (availableWidth) + 'px';
-                } else {
-                    left = (window.innerWidth - pickerRect.width) / 2;
-                }
-                
-                // Ensure picker doesn't go below viewport on mobile
-                const maxTop = window.innerHeight + window.scrollY - pickerRect.height - 20;
-                if (top > maxTop) {
-                    top = Math.max(inputRect.top + window.scrollY - pickerRect.height - 5, 20);
-                }
-            } else {
-                // Desktop positioning
-                // Adjust if picker would go off screen
-                if (left + pickerRect.width > window.innerWidth) {
-                    left = window.innerWidth - pickerRect.width - 10;
-                }
-                
-                if (left < 10) {
-                    left = 10;
-                }
-                
-                // Check if picker would go below viewport
-                if (top + pickerRect.height > window.innerHeight + window.scrollY) {
-                    // Show above input instead
-                    top = inputRect.top + window.scrollY - pickerRect.height - 5;
-                }
+            // Adjust if picker would go off screen
+            if (left + pickerRect.width > window.innerWidth) {
+                left = window.innerWidth - pickerRect.width - 10;
+            }
+            
+            if (left < 10) {
+                left = 10;
+            }
+            
+            // Check if picker would go below viewport
+            if (top + pickerRect.height > window.innerHeight + window.scrollY) {
+                // Show above input instead
+                top = inputRect.top + window.scrollY - pickerRect.height - 5;
             }
             
             this.picker.style.top = top + 'px';

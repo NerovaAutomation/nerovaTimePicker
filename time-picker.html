@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Picker Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 50px;
+            background-color: #f0f0f0;
+        }
+
+        .test-input {
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+            cursor: pointer;
+        }
+
+        .time-picker {
+            position: absolute;
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            display: none;
+            gap: 10px;
+            align-items: center;
+            z-index: 1000;
+            border: 1px solid #ddd;
+        }
+
+        .time-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 60px;
+        }
+
+        .time-scroller {
+            height: 150px;
+            overflow-y: auto;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 0;
+        }
+
+        .time-scroller::-webkit-scrollbar {
+            display: none;
+        }
+
+        .time-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: normal;
+            color: #666;
+            min-height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-item.selected {
+            color: #000;
+            font-weight: bold;
+        }
+
+        .time-separator {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .time-picker-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-cancel {
+            background-color: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-ok {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <h2>Time Picker Test</h2>
+    <input type="text" class="test-input" id="timeInput" placeholder="Click to select time" readonly>
+
+    <div class="time-picker" id="timePicker">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div class="time-column">
+                <div class="time-scroller" id="hourScroller"></div>
+            </div>
+            <div class="time-separator">:</div>
+            <div class="time-column">
+                <div class="time-scroller" id="minuteScroller"></div>
+            </div>
+            <div class="time-column">
+                <div class="time-scroller" id="periodScroller"></div>
+            </div>
+        </div>
+        <div class="time-picker-buttons">
+            <button class="btn btn-cancel" id="cancelBtn">Cancel</button>
+            <button class="btn btn-ok" id="okBtn">OK</button>
+        </div>
+    </div>
+
+    <script>
+        class TimePicker {
+            constructor() {
+                this.selectedHour = 12;
+                this.selectedMinute = 0;
+                this.selectedPeriod = 'AM';
+                
+                this.picker = document.getElementById('timePicker');
+                this.input = document.getElementById('timeInput');
+                this.hourScroller = document.getElementById('hourScroller');
+                this.minuteScroller = document.getElementById('minuteScroller');
+                this.periodScroller = document.getElementById('periodScroller');
+                this.cancelBtn = document.getElementById('cancelBtn');
+                this.okBtn = document.getElementById('okBtn');
+                
+                this.init();
+            }
+            
+            init() {
+                this.populateScrollers();
+                this.setupEventListeners();
+                this.updateSelection();
+            }
+            
+            populateScrollers() {
+                // Hours 1-12
+                for (let i = 1; i <= 12; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'time-item';
+                    item.textContent = i.toString().padStart(2, '0');
+                    item.dataset.value = i;
+                    this.hourScroller.appendChild(item);
+                }
+                
+                // Minutes 0-59
+                for (let i = 0; i <= 59; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'time-item';
+                    item.textContent = i.toString().padStart(2, '0');
+                    item.dataset.value = i;
+                    this.minuteScroller.appendChild(item);
+                }
+                
+                // AM/PM
+                ['AM', 'PM'].forEach(period => {
+                    const item = document.createElement('div');
+                    item.className = 'time-item';
+                    item.textContent = period;
+                    item.dataset.value = period;
+                    this.periodScroller.appendChild(item);
+                });
+            }
+            
+            setupEventListeners() {
+                this.input.addEventListener('click', () => this.show());
+                this.cancelBtn.addEventListener('click', () => this.hide());
+                this.okBtn.addEventListener('click', () => this.selectTime());
+                
+                // Close picker when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!this.picker.contains(e.target) && e.target !== this.input) {
+                        this.hide();
+                    }
+                });
+                
+                // Hour selection
+                this.hourScroller.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('time-item')) {
+                        this.selectedHour = parseInt(e.target.dataset.value);
+                        this.updateSelection();
+                    }
+                });
+                
+                // Minute selection
+                this.minuteScroller.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('time-item')) {
+                        this.selectedMinute = parseInt(e.target.dataset.value);
+                        this.updateSelection();
+                    }
+                });
+                
+                // Period selection
+                this.periodScroller.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('time-item')) {
+                        this.selectedPeriod = e.target.dataset.value;
+                        this.updateSelection();
+                    }
+                });
+                
+                // Scroll-based selection
+                this.setupScrollSelection();
+            }
+            
+            setupScrollSelection() {
+                let scrollTimeout;
+                
+                this.hourScroller.addEventListener('scroll', () => {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        this.updateSelectionFromScroll(this.hourScroller, 'hour');
+                    }, 100);
+                });
+                
+                this.minuteScroller.addEventListener('scroll', () => {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        this.updateSelectionFromScroll(this.minuteScroller, 'minute');
+                    }, 100);
+                });
+                
+                this.periodScroller.addEventListener('scroll', () => {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        this.updateSelectionFromScroll(this.periodScroller, 'period');
+                    }, 100);
+                });
+            }
+            
+            updateSelectionFromScroll(scroller, type) {
+                const scrollTop = scroller.scrollTop;
+                const itemHeight = 36; // Approximate item height
+                const centerIndex = Math.round(scrollTop / itemHeight);
+                const items = scroller.querySelectorAll('.time-item');
+                
+                if (items[centerIndex]) {
+                    if (type === 'hour') {
+                        this.selectedHour = parseInt(items[centerIndex].dataset.value);
+                    } else if (type === 'minute') {
+                        this.selectedMinute = parseInt(items[centerIndex].dataset.value);
+                    } else if (type === 'period') {
+                        this.selectedPeriod = items[centerIndex].dataset.value;
+                    }
+                    this.updateSelection();
+                }
+            }
+            
+            updateSelection() {
+                // Clear all selections
+                document.querySelectorAll('.time-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // Mark selected items
+                this.hourScroller.querySelector(`[data-value="${this.selectedHour}"]`).classList.add('selected');
+                this.minuteScroller.querySelector(`[data-value="${this.selectedMinute}"]`).classList.add('selected');
+                this.periodScroller.querySelector(`[data-value="${this.selectedPeriod}"]`).classList.add('selected');
+            }
+            
+            show() {
+                // Position picker under the input field
+                const inputRect = this.input.getBoundingClientRect();
+                this.picker.style.top = (inputRect.bottom + window.scrollY + 5) + 'px';
+                this.picker.style.left = inputRect.left + 'px';
+                this.picker.style.display = 'block';
+                
+                // Scroll to selected values
+                setTimeout(() => {
+                    this.scrollToSelected();
+                }, 10);
+            }
+            
+            hide() {
+                this.picker.style.display = 'none';
+            }
+            
+            scrollToSelected() {
+                const hourItem = this.hourScroller.querySelector(`[data-value="${this.selectedHour}"]`);
+                const minuteItem = this.minuteScroller.querySelector(`[data-value="${this.selectedMinute}"]`);
+                const periodItem = this.periodScroller.querySelector(`[data-value="${this.selectedPeriod}"]`);
+                
+                if (hourItem) {
+                    this.hourScroller.scrollTop = hourItem.offsetTop - this.hourScroller.offsetHeight / 2 + hourItem.offsetHeight / 2;
+                }
+                if (minuteItem) {
+                    this.minuteScroller.scrollTop = minuteItem.offsetTop - this.minuteScroller.offsetHeight / 2 + minuteItem.offsetHeight / 2;
+                }
+                if (periodItem) {
+                    this.periodScroller.scrollTop = periodItem.offsetTop - this.periodScroller.offsetHeight / 2 + periodItem.offsetHeight / 2;
+                }
+            }
+            
+            selectTime() {
+                const timeString = `${this.selectedHour.toString().padStart(2, '0')}:${this.selectedMinute.toString().padStart(2, '0')} ${this.selectedPeriod}`;
+                this.input.value = timeString;
+                this.hide();
+            }
+        }
+        
+        // Initialize the time picker when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new TimePicker();
+        });
+    </script>
+</body>
+</html>
