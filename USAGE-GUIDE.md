@@ -303,33 +303,3 @@ document.getElementById('book-now').addEventListener('click', validateBooking);
 4. **Cross-Date Validation**: Use `data-datetime-min-offset` for date-aware constraints
 5. **Auto-Initialization**: Component automatically finds and initializes all `[data-time-picker]` inputs
 
----
-
-## 🔄 Updates & Versioning
-
-**Latest Version:**
-```html
-<script src="https://cdn.jsdelivr.net/gh/NerovaAutomation/nerovaTimepicker@main/timepicker.js"></script>
-```
-
-**Specific Version (Recommended for Production):**
-```html
-<script src="https://cdn.jsdelivr.net/gh/NerovaAutomation/nerovaTimepicker@5bb1dc8/timepicker.js"></script>
-```
-
-**Cache Busting:**
-```html
-<script src="https://cdn.jsdelivr.net/gh/NerovaAutomation/nerovaTimepicker@main/timepicker.js?v=1"></script>
-```
-
----
-
-## 📞 Support
-
-- **GitHub**: [NerovaAutomation/nerovaTimepicker](https://github.com/NerovaAutomation/nerovaTimepicker)
-- **Issues**: Report bugs or request features via GitHub Issues
-- **License**: MIT License - free for any use
-
----
-
-*This component is production-ready and battle-tested. Drop it into any project with zero configuration required.*
