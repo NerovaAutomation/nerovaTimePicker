@@ -74,6 +74,12 @@
             font-weight: bold;
         }
         
+        .timepicker-item.disabled {
+            color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
         .timepicker-separator {
             font-size: 24px;
             font-weight: bold;
@@ -129,6 +135,13 @@
             
             // Get configuration from data attributes
             this.minuteInterval = parseInt(this.input.dataset.minuteInterval) || 1;
+            this.autoDefault = this.input.dataset.autoDefault === 'true';
+            this.defaultTime = this.input.dataset.defaultTime;
+            this.minOffset = this.input.dataset.minOffset;
+            this.minTime = this.input.dataset.minTime;
+            this.maxTime = this.input.dataset.maxTime;
+            this.disabledTimes = this.input.dataset.disabledTimes ? 
+                this.input.dataset.disabledTimes.split(',').map(t => t.trim()) : [];
             
             this.picker = null;
             this.hourScroller = null;
@@ -144,6 +157,7 @@
             this.createPicker();
             this.populateScrollers();
             this.setupEventListeners();
+            this.setDefaultTime();
             this.updateSelection();
         }
         
@@ -205,6 +219,68 @@
             );
         }
         
+        setDefaultTime() {
+            if (this.autoDefault) {
+                // Calculate next available time slot based on current time
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+                
+                // Convert to 12-hour format
+                let hour12 = currentHour % 12;
+                if (hour12 === 0) hour12 = 12;
+                const period = currentHour >= 12 ? 'PM' : 'AM';
+                
+                // Round up to next interval
+                const nextMinute = Math.ceil(currentMinute / this.minuteInterval) * this.minuteInterval;
+                
+                if (nextMinute >= 60) {
+                    // Move to next hour
+                    hour12 = hour12 === 12 ? 1 : hour12 + 1;
+                    if (hour12 === 12 && period === 'AM') {
+                        this.selectedPeriod = 'PM';
+                    } else if (hour12 === 12 && period === 'PM') {
+                        this.selectedPeriod = 'AM';
+                    } else {
+                        this.selectedPeriod = period;
+                    }
+                    this.selectedMinute = 0;
+                } else {
+                    this.selectedMinute = nextMinute;
+                    this.selectedPeriod = period;
+                }
+                
+                this.selectedHour = hour12;
+                
+                // Set input value immediately
+                const timeString = `${this.selectedHour}:${this.selectedMinute.toString().padStart(2, '0')} ${this.selectedPeriod}`;
+                this.input.value = timeString;
+                
+            } else if (this.defaultTime) {
+                // Parse specific default time
+                const parsed = this.parseTimeString(this.defaultTime);
+                if (parsed) {
+                    this.selectedHour = parsed.hour;
+                    this.selectedMinute = parsed.minute;
+                    this.selectedPeriod = parsed.period;
+                    this.input.value = this.defaultTime;
+                }
+            }
+        }
+        
+        parseTimeString(timeStr) {
+            const regex = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
+            const match = timeStr.match(regex);
+            if (match) {
+                return {
+                    hour: parseInt(match[1]),
+                    minute: parseInt(match[2]),
+                    period: match[3].toUpperCase()
+                };
+            }
+            return null;
+        }
+        
         populateScrollers() {
             // Hours 1-12 (no padding for single digits)
             for (let i = 1; i <= 12; i++) {
@@ -212,6 +288,11 @@
                 item.className = 'timepicker-item';
                 item.textContent = i.toString();
                 item.dataset.value = i;
+                
+                if (this.isTimeDisabled(i, 0, 'AM')) {
+                    item.classList.add('disabled');
+                }
+                
                 this.hourScroller.appendChild(item);
             }
             
@@ -232,6 +313,76 @@
                 item.dataset.value = period;
                 this.periodScroller.appendChild(item);
             });
+        }
+        
+        isTimeDisabled(hour, minute, period) {
+            const timeString = `${hour}:${minute.toString().padStart(2, '0')} ${period}`;
+            
+            // Check if time is in disabled list
+            if (this.disabledTimes.includes(timeString)) {
+                return true;
+            }
+            
+            // Check min/max time constraints
+            if (this.minTime && this.isTimeBefore(hour, minute, period, this.minTime)) {
+                return true;
+            }
+            
+            if (this.maxTime && this.isTimeAfter(hour, minute, period, this.maxTime)) {
+                return true;
+            }
+            
+            // Check min offset constraint
+            if (this.minOffset) {
+                const [refInputId, minMinutes] = this.minOffset.split(':');
+                const refInput = document.getElementById(refInputId);
+                if (refInput && refInput.value) {
+                    const refTime = this.parseTimeString(refInput.value);
+                    if (refTime) {
+                        const currentMinutes = this.timeToMinutes(hour, minute, period);
+                        const refMinutes = this.timeToMinutes(refTime.hour, refTime.minute, refTime.period);
+                        if (currentMinutes - refMinutes < parseInt(minMinutes)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        isTimeBefore(hour, minute, period, timeString) {
+            const target = this.parseTimeString(timeString);
+            if (!target) return false;
+            
+            const currentMinutes = this.timeToMinutes(hour, minute, period);
+            const targetMinutes = this.timeToMinutes(target.hour, target.minute, target.period);
+            
+            return currentMinutes < targetMinutes;
+        }
+        
+        isTimeAfter(hour, minute, period, timeString) {
+            const target = this.parseTimeString(timeString);
+            if (!target) return false;
+            
+            const currentMinutes = this.timeToMinutes(hour, minute, period);
+            const targetMinutes = this.timeToMinutes(target.hour, target.minute, target.period);
+            
+            return currentMinutes > targetMinutes;
+        }
+        
+        timeToMinutes(hour, minute, period) {
+            let totalMinutes = minute;
+            if (period === 'AM' && hour === 12) {
+                totalMinutes += 0; // 12 AM = 0 hours
+            } else if (period === 'AM') {
+                totalMinutes += hour * 60;
+            } else if (period === 'PM' && hour === 12) {
+                totalMinutes += 12 * 60; // 12 PM = 12 hours
+            } else {
+                totalMinutes += (hour + 12) * 60;
+            }
+            return totalMinutes;
         }
         
         setupEventListeners() {
@@ -259,25 +410,28 @@
             
             // Hour selection
             this.hourScroller.addEventListener('click', (e) => {
-                if (e.target.classList.contains('timepicker-item')) {
+                if (e.target.classList.contains('timepicker-item') && !e.target.classList.contains('disabled')) {
                     this.selectedHour = parseInt(e.target.dataset.value);
                     this.updateSelection();
+                    this.refreshValidation(); // Update other columns based on new selection
                 }
             });
             
             // Minute selection
             this.minuteScroller.addEventListener('click', (e) => {
-                if (e.target.classList.contains('timepicker-item')) {
+                if (e.target.classList.contains('timepicker-item') && !e.target.classList.contains('disabled')) {
                     this.selectedMinute = parseInt(e.target.dataset.value);
                     this.updateSelection();
+                    this.refreshValidation();
                 }
             });
             
             // Period selection
             this.periodScroller.addEventListener('click', (e) => {
-                if (e.target.classList.contains('timepicker-item')) {
+                if (e.target.classList.contains('timepicker-item') && !e.target.classList.contains('disabled')) {
                     this.selectedPeriod = e.target.dataset.value;
                     this.updateSelection();
+                    this.refreshValidation();
                 }
             });
             
@@ -290,6 +444,17 @@
                     this.positionPicker();
                 }
             });
+            
+            // Listen for changes in referenced inputs (for min-offset)
+            if (this.minOffset) {
+                const [refInputId] = this.minOffset.split(':');
+                const refInput = document.getElementById(refInputId);
+                if (refInput) {
+                    refInput.addEventListener('change', () => {
+                        this.refreshValidation();
+                    });
+                }
+            }
             
         }
         
@@ -315,6 +480,31 @@
                 scrollTimeouts.period = setTimeout(() => {
                     this.updateSelectionFromScroll(this.periodScroller, 'period');
                 }, 150);
+            });
+        }
+        
+        refreshValidation() {
+            // Re-validate all time options after selection change
+            this.picker.querySelectorAll('.timepicker-item').forEach(item => {
+                item.classList.remove('disabled');
+                
+                const scroller = item.closest('.timepicker-scroller');
+                if (scroller.classList.contains('timepicker-hour-scroller')) {
+                    const hour = parseInt(item.dataset.value);
+                    if (this.isTimeDisabled(hour, this.selectedMinute, this.selectedPeriod)) {
+                        item.classList.add('disabled');
+                    }
+                } else if (scroller.classList.contains('timepicker-minute-scroller')) {
+                    const minute = parseInt(item.dataset.value);
+                    if (this.isTimeDisabled(this.selectedHour, minute, this.selectedPeriod)) {
+                        item.classList.add('disabled');
+                    }
+                } else if (scroller.classList.contains('timepicker-period-scroller')) {
+                    const period = item.dataset.value;
+                    if (this.isTimeDisabled(this.selectedHour, this.selectedMinute, period)) {
+                        item.classList.add('disabled');
+                    }
+                }
             });
         }
         
@@ -404,6 +594,9 @@
             if (inputWidth > 200) {
                 this.picker.style.minWidth = inputWidth + 'px';
             }
+            
+            // Refresh validation when picker opens
+            this.refreshValidation();
             
             this.picker.style.display = 'block';
             this.positionPicker();
