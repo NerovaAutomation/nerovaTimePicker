@@ -206,11 +206,11 @@
         }
         
         populateScrollers() {
-            // Hours 1-12
+            // Hours 1-12 (no padding for single digits)
             for (let i = 1; i <= 12; i++) {
                 const item = document.createElement('div');
                 item.className = 'timepicker-item';
-                item.textContent = i.toString().padStart(2, '0');
+                item.textContent = i.toString();
                 item.dataset.value = i;
                 this.hourScroller.appendChild(item);
             }
@@ -243,9 +243,16 @@
             this.cancelBtn.addEventListener('click', () => this.hide());
             this.okBtn.addEventListener('click', () => this.selectTime());
             
-            // Close picker when clicking outside
+            // Close picker when clicking outside or when other pickers open
             document.addEventListener('click', (e) => {
                 if (!this.picker.contains(e.target) && e.target !== this.input) {
+                    this.hide();
+                }
+            });
+            
+            // Close this picker when other timepickers are opened
+            document.addEventListener('timepicker-opening', (e) => {
+                if (e.detail.picker !== this.picker) {
                     this.hide();
                 }
             });
@@ -387,6 +394,11 @@
         }
         
         show() {
+            // Broadcast that this picker is opening (to close others)
+            document.dispatchEvent(new CustomEvent('timepicker-opening', {
+                detail: { picker: this.picker }
+            }));
+            
             // Update picker width to match input if needed
             const inputWidth = this.input.offsetWidth;
             if (inputWidth > 200) {
@@ -423,7 +435,7 @@
         }
         
         selectTime() {
-            const timeString = `${this.selectedHour.toString().padStart(2, '0')}:${this.selectedMinute.toString().padStart(2, '0')} ${this.selectedPeriod}`;
+            const timeString = `${this.selectedHour}:${this.selectedMinute.toString().padStart(2, '0')} ${this.selectedPeriod}`;
             this.input.value = timeString;
             
             // Trigger change event
