@@ -56,15 +56,16 @@
         }
         
         .timepicker-item {
-            padding: 8px 12px;
+            padding: 10px 14px;
             cursor: pointer;
             font-size: 18px;
             font-weight: normal;
             color: var(--timepicker-text);
-            min-height: 20px;
+            min-height: 22px;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin: 2px 0;
         }
         
         
