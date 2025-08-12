@@ -142,6 +142,8 @@
             this.maxTime = this.input.dataset.maxTime;
             this.disabledTimes = this.input.dataset.disabledTimes ? 
                 this.input.dataset.disabledTimes.split(',').map(t => t.trim()) : [];
+            this.dateRef = this.input.dataset.dateRef;
+            this.datetimeMinOffset = this.input.dataset.datetimeMinOffset;
             
             this.picker = null;
             this.hourScroller = null;
@@ -332,7 +334,7 @@
                 return true;
             }
             
-            // Check min offset constraint
+            // Check min offset constraint (time-only)
             if (this.minOffset) {
                 const [refInputId, minMinutes] = this.minOffset.split(':');
                 const refInput = document.getElementById(refInputId);
@@ -342,6 +344,30 @@
                         const currentMinutes = this.timeToMinutes(hour, minute, period);
                         const refMinutes = this.timeToMinutes(refTime.hour, refTime.minute, refTime.period);
                         if (currentMinutes - refMinutes < parseInt(minMinutes)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            // Check datetime min offset constraint (date + time aware)
+            if (this.datetimeMinOffset) {
+                const [refDateId, refTimeId, minMinutes] = this.datetimeMinOffset.split(':');
+                const [parsedRefDateId, parsedRefTimeId] = refDateId.split(',');
+                
+                const refDateInput = document.getElementById(parsedRefDateId);
+                const refTimeInput = document.getElementById(parsedRefTimeId);
+                const currentDateInput = this.dateRef ? document.getElementById(this.dateRef) : null;
+                
+                if (refDateInput && refTimeInput && currentDateInput && 
+                    refDateInput.value && refTimeInput.value && currentDateInput.value) {
+                    
+                    const refDateTime = this.combineDateAndTime(refDateInput.value, refTimeInput.value);
+                    const currentDateTime = this.combineDateAndTime(currentDateInput.value, `${hour}:${minute.toString().padStart(2, '0')} ${period}`);
+                    
+                    if (refDateTime && currentDateTime) {
+                        const diffMinutes = (currentDateTime.getTime() - refDateTime.getTime()) / (1000 * 60);
+                        if (diffMinutes < parseInt(minMinutes)) {
                             return true;
                         }
                     }
@@ -383,6 +409,29 @@
                 totalMinutes += (hour + 12) * 60;
             }
             return totalMinutes;
+        }
+        
+        combineDateAndTime(dateStr, timeStr) {
+            try {
+                const timeObj = this.parseTimeString(timeStr);
+                if (!timeObj) return null;
+                
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return null;
+                
+                // Convert to 24-hour format
+                let hour24 = timeObj.hour;
+                if (timeObj.period === 'AM' && timeObj.hour === 12) {
+                    hour24 = 0;
+                } else if (timeObj.period === 'PM' && timeObj.hour !== 12) {
+                    hour24 = timeObj.hour + 12;
+                }
+                
+                date.setHours(hour24, timeObj.minute, 0, 0);
+                return date;
+            } catch (e) {
+                return null;
+            }
         }
         
         setupEventListeners() {
@@ -451,6 +500,36 @@
                 const refInput = document.getElementById(refInputId);
                 if (refInput) {
                     refInput.addEventListener('change', () => {
+                        this.refreshValidation();
+                    });
+                }
+            }
+            
+            // Listen for changes in referenced date/time inputs (for datetime-min-offset)
+            if (this.datetimeMinOffset) {
+                const [refDateId, refTimeId] = this.datetimeMinOffset.split(':')[0].split(',');
+                
+                const refDateInput = document.getElementById(refDateId);
+                const refTimeInput = document.getElementById(refTimeId);
+                
+                if (refDateInput) {
+                    refDateInput.addEventListener('change', () => {
+                        this.refreshValidation();
+                    });
+                }
+                
+                if (refTimeInput) {
+                    refTimeInput.addEventListener('change', () => {
+                        this.refreshValidation();
+                    });
+                }
+            }
+            
+            // Listen for changes in this picker's date reference
+            if (this.dateRef) {
+                const dateInput = document.getElementById(this.dateRef);
+                if (dateInput) {
+                    dateInput.addEventListener('change', () => {
                         this.refreshValidation();
                     });
                 }
