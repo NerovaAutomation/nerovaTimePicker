@@ -1,6 +1,23 @@
 (function() {
     'use strict';
     
+    // Security: Prevent XSS and ensure safe DOM manipulation
+    function sanitizeHTML(str) {
+        if (typeof str !== 'string') return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    
+    function sanitizeAttribute(str) {
+        if (typeof str !== 'string') return '';
+        return str.replace(/[<>"'&]/g, '');
+    }
+    
+    function validateElement(element) {
+        return element && element.nodeType === Node.ELEMENT_NODE;
+    }
+    
     // Inject CSS styles
     const css = `
         :root {
@@ -128,22 +145,27 @@
     
     class TimePicker {
         constructor(inputElement) {
+            // Security: Validate input element
+            if (!validateElement(inputElement) || inputElement.tagName !== 'INPUT') {
+                throw new Error('TimePicker requires a valid input element');
+            }
+            
             this.input = inputElement;
             this.selectedHour = 12;
             this.selectedMinute = 0;
             this.selectedPeriod = 'AM';
             
-            // Get configuration from data attributes
-            this.minuteInterval = parseInt(this.input.dataset.minuteInterval) || 1;
+            // Get configuration from data attributes with sanitization
+            this.minuteInterval = Math.max(1, Math.min(60, parseInt(this.input.dataset.minuteInterval) || 1));
             this.autoDefault = this.input.dataset.autoDefault === 'true';
-            this.defaultTime = this.input.dataset.defaultTime;
-            this.minOffset = this.input.dataset.minOffset;
-            this.minTime = this.input.dataset.minTime;
-            this.maxTime = this.input.dataset.maxTime;
+            this.defaultTime = sanitizeAttribute(this.input.dataset.defaultTime || '');
+            this.minOffset = sanitizeAttribute(this.input.dataset.minOffset || '');
+            this.minTime = sanitizeAttribute(this.input.dataset.minTime || '');
+            this.maxTime = sanitizeAttribute(this.input.dataset.maxTime || '');
             this.disabledTimes = this.input.dataset.disabledTimes ? 
-                this.input.dataset.disabledTimes.split(',').map(t => t.trim()) : [];
-            this.dateRef = this.input.dataset.dateRef;
-            this.datetimeMinOffset = this.input.dataset.datetimeMinOffset;
+                this.input.dataset.disabledTimes.split(',').map(t => sanitizeAttribute(t.trim())).filter(t => t) : [];
+            this.dateRef = sanitizeAttribute(this.input.dataset.dateRef || '');
+            this.datetimeMinOffset = sanitizeAttribute(this.input.dataset.datetimeMinOffset || '');
             
             this.picker = null;
             this.hourScroller = null;
@@ -271,12 +293,23 @@
         }
         
         parseTimeString(timeStr) {
+            // Security: Sanitize input and validate format
+            if (typeof timeStr !== 'string' || timeStr.length > 10) return null;
+            
             const regex = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
             const match = timeStr.match(regex);
             if (match) {
+                const hour = parseInt(match[1]);
+                const minute = parseInt(match[2]);
+                
+                // Validate ranges
+                if (hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+                    return null;
+                }
+                
                 return {
-                    hour: parseInt(match[1]),
-                    minute: parseInt(match[2]),
+                    hour: hour,
+                    minute: minute,
                     period: match[3].toUpperCase()
                 };
             }
@@ -507,28 +540,31 @@
             
             // Listen for changes in referenced date/time inputs (for datetime-min-offset)
             if (this.datetimeMinOffset) {
-                const [refDateId, refTimeId] = this.datetimeMinOffset.split(':')[0].split(',');
-                
-                const refDateInput = document.getElementById(refDateId);
-                const refTimeInput = document.getElementById(refTimeId);
-                
-                if (refDateInput) {
-                    refDateInput.addEventListener('change', () => {
-                        this.refreshValidation();
-                    });
-                }
-                
-                if (refTimeInput) {
-                    refTimeInput.addEventListener('change', () => {
-                        this.refreshValidation();
-                    });
+                const parts = this.datetimeMinOffset.split(':');
+                if (parts.length >= 2) {
+                    const [refDateId, refTimeId] = parts[0].split(',');
+                    
+                    const refDateInput = document.getElementById(sanitizeAttribute(refDateId));
+                    const refTimeInput = document.getElementById(sanitizeAttribute(refTimeId));
+                    
+                    if (validateElement(refDateInput)) {
+                        refDateInput.addEventListener('change', () => {
+                            this.refreshValidation();
+                        });
+                    }
+                    
+                    if (validateElement(refTimeInput)) {
+                        refTimeInput.addEventListener('change', () => {
+                            this.refreshValidation();
+                        });
+                    }
                 }
             }
             
             // Listen for changes in this picker's date reference
             if (this.dateRef) {
-                const dateInput = document.getElementById(this.dateRef);
-                if (dateInput) {
+                const dateInput = document.getElementById(sanitizeAttribute(this.dateRef));
+                if (validateElement(dateInput)) {
                     dateInput.addEventListener('change', () => {
                         this.refreshValidation();
                     });
